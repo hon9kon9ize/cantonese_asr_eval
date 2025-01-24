@@ -23,8 +23,6 @@ num_datasets = 6
 
 for dataset_index in range(num_datasets):
     if dataset_index == 0:
-        continue
-    if dataset_index == 0:
         dataset = ZoengjyutgaaiSaamgwokjinjiDataset(batch_size=batch_size)
     elif dataset_index == 1:
         dataset = GuangzhouDailyUseDataset(batch_size=batch_size)
