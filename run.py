@@ -7,7 +7,7 @@ from asr_datasets.zoengjyutgaai_saamgwokjinji import ZoengjyutgaaiSaamgwokjinjiD
 from asr_datasets.wordshk_hiujin import WordshkHiujinDataset
 from asr_datasets.mixed_cantonese_and_english import MixedCantoneseAndEnglishDataset
 import torch
-import librosa
+import torchaudio
 import json
 import os
 from tqdm import tqdm
@@ -17,9 +17,17 @@ device = (
     if torch.cuda.is_available()
     else ("mps" if torch.backends.mps.is_available() else "cpu")
 )
-batch_size = 50
+batch_size = 1
 num_models = 4
 num_datasets = 6
+
+
+def resample(wav, sr):
+    if sr != 16000:
+        rs = torchaudio.transforms.Resample(sr, 16000)
+        wav = rs(wav)
+    return wav
+
 
 for dataset_index in range(num_datasets):
     if dataset_index == 0:
@@ -51,7 +59,7 @@ for dataset_index in range(num_datasets):
         elif model_index == 3:
             model = WhisperASRModelWithNgram(
                 model_name="Scrya/whisper-large-v2-cantonese",
-                lm_model="words.text_correct.arpa",
+                lm_model="words.txt_correct.arpa",
                 device=device,
             )
 
@@ -70,12 +78,11 @@ for dataset_index in range(num_datasets):
             desc=f"{model_name} on {dataset_name}",
             total=len(dataset) // batch_size,
         ):
+            print(batch_audios["array"])
             transcriptions = model.generate(
                 [
-                    librosa.resample(
-                        audio["array"], orig_sr=audio["sampling_rate"], target_sr=16000
-                    )
-                    for audio in batch_audios
+                    resample(audio, batch_audios["sampling_rate"][i])
+                    for i, audio in enumerate(batch_audios["array"])
                 ]
             )
             for transcription, sentence in zip(transcriptions, batch_sentences):
